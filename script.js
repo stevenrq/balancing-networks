@@ -42,10 +42,12 @@ document.addEventListener("DOMContentLoaded", () => {
       stepsContent: document.getElementById("steps-content"),
     },
     modal: {
-      el: document.getElementById("help-modal"),
-      close: document.querySelector(".close-modal"),
+      el: document.getElementById("helpModal"),
+      // Bootstrap modal instance will be created in init
     },
   };
+
+  let helpModalInstance = null;
 
   // --- Configuración Inicial ---
   const STORAGE_KEY = "balanceo_spa_state"; // Clave para guardar datos en el navegador
@@ -55,17 +57,18 @@ document.addEventListener("DOMContentLoaded", () => {
     tiempo: 480,
     demanda: 360,
     tareas: [
-      { id: "A", dur: 10, prec: "" },
-      { id: "B", dur: 12, prec: "A" },
-      { id: "C", dur: 50, prec: "A" },
-      { id: "D", dur: 15, prec: "B" },
-      { id: "E", dur: 15, prec: "B" },
-      { id: "F", dur: 40, prec: "C" },
-      { id: "G", dur: 20, prec: "D,E" },
-      { id: "H", dur: 10, prec: "D,E" },
-      { id: "I", dur: 35, prec: "F,G" },
-      { id: "J", dur: 10, prec: "H" },
-      { id: "K", dur: 15, prec: "I,J" },
+      { id: "A", dur: 12, prec: "" },
+      { id: "B", dur: 60, prec: "" },
+      { id: "C", dur: 15, prec: "A" },
+      { id: "D", dur: 50, prec: "A" },
+      { id: "E", dur: 10, prec: "B" },
+      { id: "F", dur: 55, prec: "B" },
+      { id: "G", dur: 18, prec: "C" },
+      { id: "H", dur: 22, prec: "D" },
+      { id: "I", dur: 14, prec: "E,F" },
+      { id: "J", dur: 30, prec: "G" },
+      { id: "K", dur: 40, prec: "H" },
+      { id: "L", dur: 20, prec: "I,J,K" },
     ],
   };
 
@@ -96,22 +99,21 @@ document.addEventListener("DOMContentLoaded", () => {
       dom.buttons.clearResults.addEventListener("click", clearResults);
 
     // Ayuda (Modal)
-    if (dom.buttons.help)
-      dom.buttons.help.addEventListener("click", () =>
-        dom.modal.el.classList.remove("hidden")
-      );
-    if (dom.modal.close)
-      dom.modal.close.addEventListener("click", () =>
-        dom.modal.el.classList.add("hidden")
-      );
-    window.addEventListener("click", (e) => {
-      if (e.target === dom.modal.el) dom.modal.el.classList.add("hidden");
-    });
+    if (dom.buttons.help) {
+      dom.buttons.help.addEventListener("click", () => {
+        if (helpModalInstance) helpModalInstance.show();
+      });
+    }
+
+    // Initialize Bootstrap Modal
+    if (dom.modal.el) {
+      helpModalInstance = new bootstrap.Modal(dom.modal.el);
+    }
 
     // Mostrar/Ocultar detalles paso a paso
     if (dom.buttons.toggleSteps) {
       dom.buttons.toggleSteps.addEventListener("click", () => {
-        dom.results.stepsContent.classList.toggle("hidden");
+        dom.results.stepsContent.classList.toggle("d-none");
       });
     }
 
@@ -148,12 +150,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const prec = data ? data.prec : "";
 
     tr.innerHTML = `
-            <td><input type="text" class="task-id" value="${id}" placeholder="ID"></td>
-            <td><input type="number" class="task-dur" value="${dur}" min="1"></td>
-            <td><input type="text" class="task-prec" value="${prec}" placeholder="Ej: A,C"></td>
+            <td><input type="text" class="form-control form-control-sm task-id" value="${id}" placeholder="ID"></td>
+            <td><input type="number" class="form-control form-control-sm task-dur" value="${dur}" min="1"></td>
+            <td><input type="text" class="form-control form-control-sm task-prec" value="${prec}" placeholder="Ej: A,C"></td>
             <td>
-                <button class="btn btn-icon btn-dup" title="Duplicar">📄</button>
-                <button class="btn btn-icon btn-delete" title="Eliminar">🗑️</button>
+                <button class="btn btn-sm btn-outline-secondary btn-dup" title="Duplicar"><i class="bi bi-files"></i></button>
+                <button class="btn btn-sm btn-outline-danger btn-delete" title="Eliminar"><i class="bi bi-trash"></i></button>
             </td>
         `;
 
@@ -193,29 +195,29 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function confirmClearTable() {
-    if (confirm("¿Borrar todas las tareas?")) {
-      dom.tableBody.innerHTML = "";
-      saveState();
-    }
+    // if (confirm("¿Borrar todas las tareas?")) {
+    dom.tableBody.innerHTML = "";
+    saveState();
+    // }
   }
 
   function confirmNewScenario() {
-    if (confirm("¿Iniciar nuevo escenario? Se borrarán todos los datos.")) {
-      dom.inputs.tiempo.value = "";
-      dom.inputs.demanda.value = "";
-      dom.tableBody.innerHTML = "";
-      clearResults();
-      addRow({ id: "A", dur: 10, prec: "" });
-      saveState();
-    }
+    // if (confirm("¿Iniciar nuevo escenario? Se borrarán todos los datos.")) {
+    dom.inputs.tiempo.value = "";
+    dom.inputs.demanda.value = "";
+    dom.tableBody.innerHTML = "";
+    clearResults();
+    addRow({ id: "A", dur: 10, prec: "" });
+    saveState();
+    // }
   }
 
   function loadExample() {
-    if (
-      dom.tableBody.children.length > 0 &&
-      !confirm("¿Sobrescribir datos actuales con el ejemplo?")
-    )
-      return;
+    // if (
+    //   dom.tableBody.children.length > 0 &&
+    //   !confirm("¿Sobrescribir datos actuales con el ejemplo?")
+    // )
+    //   return;
 
     dom.inputs.tiempo.value = EXAMPLE_DATA.tiempo;
     dom.inputs.demanda.value = EXAMPLE_DATA.demanda;
@@ -228,11 +230,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- Generador de Escenarios Aleatorios ---
   // Crea un problema de balanceo al azar para probar la herramienta
   function generateRandomScenario() {
-    if (
-      dom.tableBody.children.length > 0 &&
-      !confirm("¿Sobrescribir con datos aleatorios?")
-    )
-      return;
+    // if (
+    //   dom.tableBody.children.length > 0 &&
+    //   !confirm("¿Sobrescribir con datos aleatorios?")
+    // )
+    //   return;
 
     const numTasks = Math.floor(Math.random() * 6) + 8; // Entre 8 y 13 tareas
     const tasks = [];
@@ -275,17 +277,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Validar configuración global
     if (dom.inputs.tiempo.value <= 0) {
-      dom.errors.tiempo.classList.remove("hidden");
+      dom.errors.tiempo.classList.remove("d-none");
+      dom.inputs.tiempo.classList.add("is-invalid");
       isValid = false;
     } else {
-      dom.errors.tiempo.classList.add("hidden");
+      dom.errors.tiempo.classList.add("d-none");
+      dom.inputs.tiempo.classList.remove("is-invalid");
     }
 
     if (dom.inputs.demanda.value <= 0) {
-      dom.errors.demanda.classList.remove("hidden");
+      dom.errors.demanda.classList.remove("d-none");
+      dom.inputs.demanda.classList.add("is-invalid");
       isValid = false;
     } else {
-      dom.errors.demanda.classList.add("hidden");
+      dom.errors.demanda.classList.add("d-none");
+      dom.inputs.demanda.classList.remove("is-invalid");
     }
 
     // Validar filas de la tabla
@@ -301,16 +307,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const id = idInput.value.trim().toUpperCase();
       const dur = parseInt(durInput.value);
 
-      inputs.forEach((i) => i.classList.remove("input-error"));
+      inputs.forEach((i) => i.classList.remove("is-invalid"));
 
       // ID obligatorio y único
       if (!id) {
         errors.push(`Fila ${index + 1}: ID vacío.`);
-        idInput.classList.add("input-error");
+        idInput.classList.add("is-invalid");
         isValid = false;
       } else if (ids.has(id)) {
         errors.push(`Fila ${index + 1}: ID "${id}" duplicado.`);
-        idInput.classList.add("input-error");
+        idInput.classList.add("is-invalid");
         isValid = false;
       }
       ids.add(id);
@@ -318,7 +324,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Duración positiva
       if (dur <= 0 || isNaN(dur)) {
         errors.push(`Fila ${index + 1}: Duración inválida.`);
-        durInput.classList.add("input-error");
+        durInput.classList.add("is-invalid");
         isValid = false;
       }
 
@@ -339,7 +345,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 item.id
               }): Precedencia "${p}" no existe.`
             );
-            item.row.querySelectorAll("input")[2].classList.add("input-error");
+            item.row.querySelectorAll("input")[2].classList.add("is-invalid");
             isValid = false;
           }
           if (p === item.id) {
@@ -357,9 +363,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // Mostrar errores si los hay
     if (errors.length > 0) {
       dom.errors.table.innerHTML = errors.join("<br>");
-      dom.errors.table.classList.remove("hidden");
+      dom.errors.table.classList.remove("d-none");
     } else {
-      dom.errors.table.classList.add("hidden");
+      dom.errors.table.classList.add("d-none");
     }
 
     return isValid;
@@ -372,9 +378,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const precInput = tr.querySelector(".task-prec");
 
     // Reset styles
-    idInput.classList.remove("input-error");
-    durInput.classList.remove("input-error");
-    precInput.classList.remove("input-error");
+    idInput.classList.remove("is-invalid");
+    durInput.classList.remove("is-invalid");
+    precInput.classList.remove("is-invalid");
 
     const id = idInput.value.trim().toUpperCase();
     const dur = parseInt(durInput.value);
@@ -390,7 +396,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 2. Tiempo negativo
     if (dur < 0) {
       durInput.value = 0;
-      durInput.classList.add("input-error");
+      durInput.classList.add("is-invalid");
     }
 
     // 3. Existencia de Precedencias
@@ -411,7 +417,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       if (precError) {
-        precInput.classList.add("input-error");
+        precInput.classList.add("is-invalid");
       }
     }
   }
@@ -476,16 +482,16 @@ document.addEventListener("DOMContentLoaded", () => {
   function setLoading(isLoading) {
     if (isLoading) {
       dom.buttons.calculate.disabled = true;
-      dom.results.loading.classList.remove("hidden");
+      dom.results.loading.classList.remove("d-none");
     } else {
       dom.buttons.calculate.disabled = false;
-      dom.results.loading.classList.add("hidden");
+      dom.results.loading.classList.add("d-none");
     }
   }
 
   // --- Mostrar Resultados en Pantalla ---
   function renderResults(data) {
-    dom.results.container.classList.remove("hidden");
+    dom.results.container.classList.remove("d-none");
 
     // Mostrar métricas principales
     dom.results.metrics.takt.textContent =
@@ -757,10 +763,10 @@ document.addEventListener("DOMContentLoaded", () => {
       header.innerHTML = `<span>Estación ${estacionLog.estacion_id}</span> <span style="font-size:0.8em">▼</span>`;
 
       const details = document.createElement("div");
-      details.className = "step-details hidden";
+      details.className = "step-details d-none";
 
       header.addEventListener("click", () => {
-        details.classList.toggle("hidden");
+        details.classList.toggle("d-none");
       });
 
       estacionLog.pasos.forEach((paso, idx) => {
@@ -800,7 +806,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function clearResults() {
-    dom.results.container.classList.add("hidden");
+    dom.results.container.classList.add("d-none");
     dom.results.grid.innerHTML = "";
     dom.results.stepsContent.innerHTML = "";
     const graph = document.getElementById("graph-viz");
