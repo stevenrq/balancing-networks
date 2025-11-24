@@ -602,26 +602,29 @@ document.addEventListener("DOMContentLoaded", () => {
   // Dibuja el grafo de conexiones (SVG)
   function renderGraphSVG(data) {
     const container = document.getElementById("graph-container");
+    const graphWrapper = document.getElementById("graph-wrapper");
     if (!container) return;
     container.innerHTML = "";
 
-    // Preparar nodos
     const estaciones = data.estaciones;
     const nodes = {};
+    const colWidth = 180;
+    const rowHeight = 90;
 
+    let maxTasksInStation = 0;
     estaciones.forEach((est, i) => {
+      maxTasksInStation = Math.max(maxTasksInStation, est.tareas.length);
       est.tareas.forEach((t, j) => {
         nodes[t.letra] = {
           id: t.letra,
           dur: t.duracion,
           station: est.id,
-          x: i * 150 + 80, // Posición X basada en la estación
-          y: j * 80 + 50, // Posición Y basada en el orden dentro de la estación
+          x: i * colWidth + 100,
+          y: j * rowHeight + 80,
         };
       });
     });
 
-    // Preparar enlaces (flechas)
     const links = [];
     const rows = dom.tableBody.querySelectorAll("tr");
     rows.forEach((row) => {
@@ -636,45 +639,20 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Configurar SVG
-    const width = estaciones.length * 160 + 50;
-    const height = 600;
+    const svgWidth = Math.max(
+      estaciones.length * colWidth + 120,
+      graphWrapper ? graphWrapper.clientWidth : 0,
+      600
+    );
+    const svgHeight = Math.max(maxTasksInStation * rowHeight + 160, 420);
+
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("width", width);
-    svg.setAttribute("height", height);
-    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    svg.style.border = "1px solid #ccc";
-    svg.style.background = "#f9f9f9";
+    svg.setAttribute("id", "graph-viz");
+    svg.setAttribute("width", svgWidth);
+    svg.setAttribute("height", svgHeight);
+    svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
+    svg.classList.add("graph-svg");
 
-    // Dibujar fondo de estaciones
-    estaciones.forEach((est, i) => {
-      const rect = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "rect"
-      );
-      rect.setAttribute("x", i * 150 + 10);
-      rect.setAttribute("y", 10);
-      rect.setAttribute("width", 140);
-      rect.setAttribute("height", height - 20);
-      rect.setAttribute("rx", 10);
-      rect.setAttribute("fill", i % 2 === 0 ? "#e0f2fe" : "#f0f9ff");
-      rect.setAttribute("stroke", "#bae6fd");
-      svg.appendChild(rect);
-
-      const label = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "text"
-      );
-      label.setAttribute("x", i * 150 + 80);
-      label.setAttribute("y", 30);
-      label.setAttribute("text-anchor", "middle");
-      label.setAttribute("font-weight", "bold");
-      label.setAttribute("fill", "#0284c7");
-      label.textContent = `Estación ${est.id}`;
-      svg.appendChild(label);
-    });
-
-    // Definir punta de flecha
     const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
     defs.innerHTML = `
             <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="28" refY="3.5" orient="auto">
@@ -683,7 +661,40 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
     svg.appendChild(defs);
 
-    // Dibujar líneas
+    const contentGroup = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "g"
+    );
+    contentGroup.setAttribute("id", "graph-content");
+    svg.appendChild(contentGroup);
+
+    estaciones.forEach((est, i) => {
+      const rect = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "rect"
+      );
+      rect.setAttribute("x", i * colWidth + 20);
+      rect.setAttribute("y", 20);
+      rect.setAttribute("width", colWidth - 20);
+      rect.setAttribute("height", svgHeight - 40);
+      rect.setAttribute("rx", 10);
+      rect.setAttribute("fill", i % 2 === 0 ? "#e0f2fe" : "#f0f9ff");
+      rect.setAttribute("stroke", "#bae6fd");
+      contentGroup.appendChild(rect);
+
+      const label = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "text"
+      );
+      label.setAttribute("x", i * colWidth + 100);
+      label.setAttribute("y", 42);
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("font-weight", "bold");
+      label.setAttribute("fill", "#0284c7");
+      label.textContent = `Estación ${est.id}`;
+      contentGroup.appendChild(label);
+    });
+
     links.forEach((l) => {
       const line = document.createElementNS(
         "http://www.w3.org/2000/svg",
@@ -696,10 +707,9 @@ document.addEventListener("DOMContentLoaded", () => {
       line.setAttribute("stroke", "#64748b");
       line.setAttribute("stroke-width", "2");
       line.setAttribute("marker-end", "url(#arrowhead)");
-      svg.appendChild(line);
+      contentGroup.appendChild(line);
     });
 
-    // Dibujar círculos (nodos)
     Object.values(nodes).forEach((n) => {
       const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
@@ -738,10 +748,161 @@ document.addEventListener("DOMContentLoaded", () => {
       durText.textContent = n.dur;
       g.appendChild(durText);
 
-      svg.appendChild(g);
+      contentGroup.appendChild(g);
     });
 
-    container.appendChild(svg);
+    const controls = document.createElement("div");
+    controls.className = "graph-controls";
+    controls.innerHTML = `
+            <button type="button" class="btn btn-light btn-sm" data-zoom="in" title="Acercar">
+                <i class="bi bi-zoom-in"></i>
+            </button>
+            <button type="button" class="btn btn-light btn-sm" data-zoom="out" title="Alejar">
+                <i class="bi bi-zoom-out"></i>
+            </button>
+            <button type="button" class="btn btn-light btn-sm" data-zoom="fit" title="Ajustar al contenedor">
+                <i class="bi bi-arrows-fullscreen"></i>
+            </button>
+            <button type="button" class="btn btn-light btn-sm" data-zoom="reset" title="Restablecer vista">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+        `;
+
+    const viewport = document.createElement("div");
+    viewport.className = "graph-viewport";
+    const viewportHeight = Math.min(Math.max(svgHeight, 420), 900);
+    viewport.style.height = `${viewportHeight}px`;
+    viewport.appendChild(svg);
+
+    const hint = document.createElement("div");
+    hint.className = "graph-hint";
+    hint.textContent = "Arrastra para mover · Rueda para zoom";
+
+    container.appendChild(controls);
+    container.appendChild(viewport);
+    container.appendChild(hint);
+
+    setupPanZoom({
+      svg,
+      viewport,
+      contentGroup,
+      controls,
+      graphWrapper,
+    });
+  }
+
+  function setupPanZoom({ svg, viewport, contentGroup, controls, graphWrapper }) {
+    const state = {
+      scale: 1,
+      x: 0,
+      y: 0,
+    };
+    const limits = { min: 0.35, max: 2.6 };
+
+    const applyTransform = () => {
+      contentGroup.setAttribute(
+        "transform",
+        `translate(${state.x},${state.y}) scale(${state.scale})`
+      );
+    };
+
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+    const zoom = (factor, centerX, centerY) => {
+      const svgRect = svg.getBoundingClientRect();
+      const cx = centerX - svgRect.left;
+      const cy = centerY - svgRect.top;
+
+      const newScale = clamp(state.scale * factor, limits.min, limits.max);
+      if (newScale === state.scale) return;
+
+      state.x -= (cx / state.scale - cx / newScale);
+      state.y -= (cy / state.scale - cy / newScale);
+      state.scale = newScale;
+      applyTransform();
+    };
+
+    const fitToView = () => {
+      const bbox = contentGroup.getBBox();
+      if (!bbox.width || !bbox.height) {
+        reset();
+        return;
+      }
+      const padding = 40;
+      const availableWidth =
+        (graphWrapper ? graphWrapper.clientWidth : viewport.clientWidth) -
+        padding;
+      const availableHeight = viewport.clientHeight - padding;
+      const scaleX = availableWidth / bbox.width;
+      const scaleY = availableHeight / bbox.height;
+      const newScale = clamp(Math.min(scaleX, scaleY), limits.min, limits.max);
+
+      state.scale = newScale;
+      state.x = (availableWidth - bbox.width * newScale) / 2 - bbox.x * newScale;
+      state.y =
+        (availableHeight - bbox.height * newScale) / 2 - bbox.y * newScale;
+      applyTransform();
+    };
+
+    const reset = () => {
+      state.scale = 1;
+      state.x = 0;
+      state.y = 0;
+      applyTransform();
+    };
+
+    let isPanning = false;
+    let startX = 0;
+    let startY = 0;
+
+    svg.addEventListener("mousedown", (e) => {
+      isPanning = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      svg.style.cursor = "grabbing";
+    });
+
+    svg.addEventListener("mousemove", (e) => {
+      if (!isPanning) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      startX = e.clientX;
+      startY = e.clientY;
+      state.x += dx;
+      state.y += dy;
+      applyTransform();
+    });
+
+    ["mouseup", "mouseleave"].forEach((evt) => {
+      svg.addEventListener(evt, () => {
+        isPanning = false;
+        svg.style.cursor = "grab";
+      });
+    });
+
+    svg.addEventListener(
+      "wheel",
+      (e) => {
+        e.preventDefault();
+        const factor = e.deltaY > 0 ? 0.9 : 1.1;
+        zoom(factor, e.clientX, e.clientY);
+      },
+      { passive: false }
+    );
+
+    controls.querySelectorAll("button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const action = btn.dataset.zoom;
+        if (action === "in") zoom(1.15, viewport.clientWidth / 2, viewport.clientHeight / 2);
+        if (action === "out") zoom(0.87, viewport.clientWidth / 2, viewport.clientHeight / 2);
+        if (action === "reset") reset();
+        if (action === "fit") fitToView();
+      });
+    });
+
+    applyTransform();
+    // Ajustar automáticamente al renderizar por primera vez
+    fitToView();
   }
 
   // Muestra el log detallado paso a paso (texto desplegable)
@@ -809,8 +970,8 @@ document.addEventListener("DOMContentLoaded", () => {
     dom.results.container.classList.add("d-none");
     dom.results.grid.innerHTML = "";
     dom.results.stepsContent.innerHTML = "";
-    const graph = document.getElementById("graph-viz");
-    if (graph) graph.remove();
+    const graphContainer = document.getElementById("graph-container");
+    if (graphContainer) graphContainer.innerHTML = "";
   }
 
   // --- Persistencia (Guardar datos en el navegador) ---

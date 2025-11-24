@@ -126,9 +126,56 @@ body {
 
 /* Graph */
 #graph-wrapper {
-  background: #fafafa;
+  position: relative;
+  background: #f8fafc;
   border-radius: 0 0 12px 12px;
-  min-height: 400px;
+  min-height: 420px;
+}
+
+#graph-container {
+  position: relative;
+  width: 100%;
+}
+
+.graph-viewport {
+  position: relative;
+  border: 1px solid #e2e8f0;
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+  background: radial-gradient(circle at 20% 20%, #ffffff, #f8fafc 45%, #f1f5f9);
+}
+
+.graph-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 2;
+}
+
+.graph-controls .btn {
+  box-shadow: var(--shadow-sm);
+  border-color: #e2e8f0;
+}
+
+.graph-hint {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  background: rgba(15, 23, 42, 0.75);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.graph-svg {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
 }
 
 /* Loading */
