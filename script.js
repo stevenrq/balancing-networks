@@ -54,24 +54,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Datos de ejemplo para el botón "Cargar Ejemplo"
   const EXAMPLE_DATA = {
-    tiempo: 480,
-    demanda: 360,
+    tiempo: 480, // minutos
+    demanda: 360, // unidades por día  -> Takt = 80 s
     tareas: [
-      { id: "A", dur: 12, prec: "" },
-      { id: "B", dur: 60, prec: "" },
-      { id: "C", dur: 15, prec: "A" },
-      { id: "D", dur: 50, prec: "A" },
-      { id: "E", dur: 10, prec: "B" },
-      { id: "F", dur: 55, prec: "B" },
-      { id: "G", dur: 18, prec: "C" },
-      { id: "H", dur: 22, prec: "D" },
-      { id: "I", dur: 14, prec: "E,F" },
-      { id: "J", dur: 30, prec: "G" },
-      { id: "K", dur: 40, prec: "H" },
-      { id: "L", dur: 20, prec: "I,J,K" },
+      { id: "A", dur: 20, prec: "" },
+      { id: "B", dur: 55, prec: "" },
+      { id: "C", dur: 18, prec: "A" },
+      { id: "D", dur: 45, prec: "A" },
+      { id: "E", dur: 12, prec: "B" },
+      { id: "F", dur: 50, prec: "B" },
+      { id: "G", dur: 25, prec: "C" },
+      { id: "H", dur: 28, prec: "D" },
+      { id: "I", dur: 20, prec: "E,F" },
+      { id: "J", dur: 35, prec: "G" },
+      { id: "K", dur: 30, prec: "H" },
+      { id: "L", dur: 22, prec: "I,J,K" },
     ],
   };
-
   // Arrancamos la aplicación
   init();
 
@@ -791,7 +790,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function setupPanZoom({ svg, viewport, contentGroup, controls, graphWrapper }) {
+  function setupPanZoom({
+    svg,
+    viewport,
+    contentGroup,
+    controls,
+    graphWrapper,
+  }) {
     const state = {
       scale: 1,
       x: 0,
@@ -816,8 +821,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const newScale = clamp(state.scale * factor, limits.min, limits.max);
       if (newScale === state.scale) return;
 
-      state.x -= (cx / state.scale - cx / newScale);
-      state.y -= (cy / state.scale - cy / newScale);
+      state.x -= cx / state.scale - cx / newScale;
+      state.y -= cy / state.scale - cy / newScale;
       state.scale = newScale;
       applyTransform();
     };
@@ -838,7 +843,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const newScale = clamp(Math.min(scaleX, scaleY), limits.min, limits.max);
 
       state.scale = newScale;
-      state.x = (availableWidth - bbox.width * newScale) / 2 - bbox.x * newScale;
+      state.x =
+        (availableWidth - bbox.width * newScale) / 2 - bbox.x * newScale;
       state.y =
         (availableHeight - bbox.height * newScale) / 2 - bbox.y * newScale;
       applyTransform();
@@ -893,8 +899,10 @@ document.addEventListener("DOMContentLoaded", () => {
     controls.querySelectorAll("button").forEach((btn) => {
       btn.addEventListener("click", () => {
         const action = btn.dataset.zoom;
-        if (action === "in") zoom(1.15, viewport.clientWidth / 2, viewport.clientHeight / 2);
-        if (action === "out") zoom(0.87, viewport.clientWidth / 2, viewport.clientHeight / 2);
+        if (action === "in")
+          zoom(1.15, viewport.clientWidth / 2, viewport.clientHeight / 2);
+        if (action === "out")
+          zoom(0.87, viewport.clientWidth / 2, viewport.clientHeight / 2);
         if (action === "reset") reset();
         if (action === "fit") fitToView();
       });
