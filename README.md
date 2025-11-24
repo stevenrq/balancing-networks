@@ -1,50 +1,91 @@
-# Guía de Ejecución - Redes de Balanceo
+# Redes de Balanceo de Líneas
 
-Esta aplicación es un sistema simple de Redes de Balanceo construido en PHP nativo con MySQL.
+Aplicación web en PHP nativo + MySQL que calcula la distribución de tareas en estaciones bajo distintas reglas de prioridad (RPW, SPT, mayor/menor tiempo de sucesores y aleatorio), mostrando métricas, grafo de precedencias y paso a paso del algoritmo.
 
-## Requisitos Previos
+## Requisitos
 
-1. **PHP**: Asegúrate de tener PHP instalado (versión 7.4 o superior recomendada).
-2. **MySQL**: Necesitas un servidor MySQL en ejecución.
+- PHP 7.4+ (CLI y servidor embebido).
+- MySQL (o MariaDB) activo.
+- Navegador moderno.
 
-## Configuración de la Base de Datos
+## Instalación rápida
 
-1. **Crear la Base de Datos**:
-   Ejecuta el script SQL incluido para crear la base de datos y las tablas necesarias.
-   Puedes hacerlo desde la línea de comandos o usando una herramienta como phpMyAdmin o MySQL Workbench.
-
-   Comando de terminal (te pedirá tu contraseña de root):
+1) Clona o descarga el repositorio.  
+2) Crea la base de datos y tablas:
 
    ```bash
    mysql -u root -p < database.sql
    ```
 
-2. **Configurar Credenciales**:
-   Abre el archivo `db.php` y edita las credenciales de conexión si son diferentes a las predeterminadas:
+3) Ajusta credenciales en `db.php` si difieren de las predeterminadas:
 
    ```php
-   private $username = 'root'; // Tu usuario de MySQL
-   private $password = '';     // Tu contraseña de MySQL
+   private $username = 'root';
+   private $password = '';
    ```
 
-## Ejecutar la Aplicación
+## Ejecutar la app
 
-Puedes usar el servidor web incorporado de PHP para ejecutar la aplicación localmente.
+Desde la raíz del proyecto:
 
-1. Abre una terminal en la carpeta del proyecto.
-2. Ejecuta el siguiente comando:
+```bash
+php -S localhost:8000
+```
 
-   ```bash
-   php -S localhost:8000
-   ```
+Abre <http://localhost:8000> en el navegador.
 
-3. Abre tu navegador y visita: [http://localhost:8000](http://localhost:8000)
+## Uso básico
 
-## Estructura de Archivos
+1) Ingresa Tiempo Disponible (min/día) y Demanda (unidades/día).  
+2) Añade tareas con duración y precedencias (separadas por coma).  
+3) Elige la regla de prioridad:
+   - RPW (DEFAULT): peso posicional = duración + suma tiempos sucesores.
+   - SPT: menor duración.
+   - MAX_SUCC_TIME: mayor suma de tiempos de sucesores.
+   - MIN_SUCC_TIME: menor suma de tiempos de sucesores.
+   - RANDOM: desempate aleatorio.
+4) Pulsa **Calcular Balanceo**.  
+5) Revisa KPIs, tarjetas de estaciones, grafo de precedencias (pan/zoom) y el detalle paso a paso.
 
-- `index.php`: Página principal de la aplicación.
-- `api.php`: Endpoints para las peticiones AJAX.
-- `db.php`: Configuración y conexión a la base de datos.
-- `functions.php`: Lógica de negocio y cálculos de balanceo.
-- `script.js`: Lógica del frontend.
-- `style.css`: Estilos de la aplicación.
+### Datos de ejemplo
+
+Botón **Cargar Ejemplo** usa:
+
+```text
+Tiempo turno: 480 min, Demanda: 360 uds (Takt 80 s)
+Tareas: A20, B55, C18(A), D45(A), E12(B), F50(B), G25(C),
+        H28(D), I20(E,F), J35(G), K30(H), L22(I,J,K)
+```
+
+## Tests de reglas
+
+Hay un script CLI que valida todas las reglas con el dataset de ejemplo, comprobando precedencias, ocupación de estaciones, KPIs y layouts esperados.
+
+```bash
+php tests.php
+```
+
+El reporte muestra: Takt, Suma tiempos, Nt, Nr, Eficiencia y el layout por estación para RPW, SPT, MAX_SUCC_TIME, MIN_SUCC_TIME y RANDOM (semilla fija) + variabilidad de RANDOM con otra semilla.
+
+## Estructura de carpetas
+
+- `index.php` UI principal (Bootstrap).
+- `script.js` lógica frontend, render de resultados y grafo (SVG pan/zoom).
+- `style.css` estilos.
+- `api.php` endpoint JSON.
+- `functions.php` algoritmo de balanceo y validaciones.
+- `db.php` conexión MySQL.
+- `tests.php` pruebas de reglas de prioridad.
+
+## Notas útiles
+
+- El estado de la tabla se guarda en `localStorage`; usa “Nuevo escenario” para limpiar o “Cargar Ejemplo” para reponer el dataset base.  
+- El grafo soporta arrastrar y zoom; botones para fit/reset.  
+- Takt Time = (tiempo disponible en segundos) / demanda. Ninguna tarea puede exceder el takt; si ocurre, el backend lanza error.  
+- Precedencias se validan en frontend y backend para evitar ciclos o tareas imposibles.
+
+## Problemas comunes
+
+- Si ves KPIs distintos a los tests, asegúrate de cargar el ejemplo o de que tu tabla coincida con el dataset.  
+- Error de conexión: revisa credenciales en `db.php` o que MySQL esté activo.  
+- Errores 400 desde `api.php`: suelen ser JSON inválido, demanda <= 0 o tareas vacías.  
