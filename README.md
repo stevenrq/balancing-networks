@@ -1,6 +1,6 @@
-# Guía de Ejecución - Redes de B
+# Guía de Ejecución - Redes de Balanceo
 
-Esta aplicación es un sistema simple de Redes de B construido en PHP nativo con MySQL.
+Esta aplicación es un sistema simple de Redes de Balanceo construido en PHP nativo con MySQL.
 
 ## Requisitos Previos
 
